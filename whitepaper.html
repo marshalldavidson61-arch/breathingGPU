@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GrugBreathMap Whitepaper - Metabolic GPU Dispatch System</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --accent: #e74c3c;
+            --light: #ecf0f1;
+            --dark: #1a252f;
+            --code-bg: #1e1e1e;
+            --grug-color: #8b4513;
+            --academic-color: #2c3e50;
+        }
+        
+        * { box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.7;
+            color: var(--dark);
+            background: var(--light);
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--dark) 100%);
+            color: white;
+            padding: 60px 20px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 3em;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        header .tagline {
+            font-size: 1.3em;
+            opacity: 0.9;
+            margin-top: 10px;
+            font-style: italic;
+        }
+        
+        header .version {
+            background: var(--secondary);
+            padding: 5px 15px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+        
+        nav {
+            background: var(--dark);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        nav li { margin: 0; }
+        
+        nav a {
+            display: block;
+            color: white;
+            text-decoration: none;
+            padding: 15px 20px;
+            transition: background 0.3s;
+        }
+        
+        nav a:hover { background: var(--secondary); }
+        
+        section {
+            background: white;
+            margin: 30px 0;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        h2 {
+            color: var(--primary);
+            border-bottom: 3px solid var(--secondary);
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        
+        h3 {
+            color: var(--secondary);
+            margin-top: 30px;
+        }
+        
+        h4 {
+            color: var(--primary);
+            margin-top: 25px;
+        }
+        
+        .explanation {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        @media (max-width: 900px) {
+            .explanation {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .grug-box, .academic-box {
+            padding: 25px;
+            border-radius: 10px;
+            margin: 0;
+        }
+        
+        .grug-box {
+            background: linear-gradient(135deg, #fef3cd 0%, #fff8e1 100%);
+            border-left: 5px solid var(--grug-color);
+        }
+        
+        .grug-box h4 {
+            color: var(--grug-color);
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .grug-box h4::before {
+            content: "🦴";
+            font-size: 1.5em;
+        }
+        
+        .academic-box {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f5f5f5 100%);
+            border-left: 5px solid var(--academic-color);
+        }
+        
+        .academic-box h4 {
+            color: var(--academic-color);
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .academic-box h4::before {
+            content: "📚";
+            font-size: 1.5em;
+        }
+        
+        .flowchart {
+            background: var(--light);
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 30px 0;
+            overflow-x: auto;
+        }
+        
+        .flowchart svg {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        pre {
+            background: var(--code-bg);
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+        
+        code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.9em;
+        }
+        
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        
+        .keyword { color: #569cd6; }
+        .string { color: #ce9178; }
+        .comment { color: #6a9955; }
+        .function { color: #dcdcaa; }
+        .number { color: #b5cea8; }
+        .type { color: #4ec9b0; }
+        
+        .math-block {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 25px;
+            border-radius: 8px;
+            margin: 20px 0;
+            overflow-x: auto;
+            font-family: 'Cambria Math', 'Times New Roman', serif;
+        }
+        
+        .math-block .equation {
+            text-align: center;
+            font-size: 1.2em;
+            margin: 15px 0;
+        }
+        
+        .lambda-expr {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            margin: 10px 0;
+        }
+        
+        .function-signature {
+            background: var(--code-bg);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px 8px 0 0;
+            font-family: monospace;
+            font-size: 1.1em;
+        }
+        
+        .function-body {
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            padding: 20px;
+            border-radius: 0 0 8px 8px;
+        }
+        
+        .parameters-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        .parameters-table th,
+        .parameters-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        .parameters-table th {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .parameters-table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        
+        .return-value {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .example-block {
+            background: #fff;
+            border: 1px solid #ddd;
+            margin: 25px 0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .example-title {
+            background: var(--secondary);
+            color: white;
+            padding: 10px 15px;
+            font-weight: bold;
+        }
+        
+        .example-code {
+            padding: 0;
+            margin: 0;
+            border-radius: 0;
+        }
+        
+        .example-output {
+            background: #f5f5f5;
+            padding: 15px;
+            border-top: 1px solid #ddd;
+            font-family: monospace;
+        }
+        
+        .example-output strong {
+            color: var(--secondary);
+        }
+        
+        .note, .warning, .tip {
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        
+        .note {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .warning {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+        }
+        
+        .tip {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .note::before, .warning::before, .tip::before {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .note::before { content: "ℹ️ Note"; }
+        .warning::before { content: "⚠️ Warning"; }
+        .tip::before { content: "💡 Tip"; }
+        
+        .see-also {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+        
+        .see-also h4 {
+            margin-top: 0;
+            color: var(--primary);
+        }
+        
+        .see-also ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        footer {
+            background: var(--dark);
+            color: white;
+            text-align: center;
+            padding: 40px 20px;
+            margin-top: 50px;
+        }
+        
+        footer a {
+            color: var(--secondary);
+        }
+        
+        .toc {
+            background: var(--light);
+            padding: 30px;
+            border-radius: 10px;
+            margin: 30px 0;
+        }
+        
+        .toc h3 {
+            margin-top: 0;
+            color: var(--primary);
+        }
+        
+        .toc ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .toc > ul > li {
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .toc ul ul {
+            padding-left: 30px;
+            margin: 5px 0;
+        }
+        
+        .toc ul ul li {
+            font-weight: normal;
+            margin: 5px 0;
+        }
+        
+        .toc a {
+            color: var(--dark);
+            text-decoration: none;
+        }
+        
+        .toc a:hover {
+            color: var(--secondary);
+            text-decoration: underline;
+        }
+        
+        @media print {
+            body {
+                background: white;
+            }
+            section {
+                box-shadow: none;
+                break-inside: avoid;
+            }
+            nav {
+                display: none;
+            }
+            .flowchart {
+                break-inside: avoid;
+            }
+        }
+    </style>
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+    <header>
+        <h1>🦴 GrugBreathMap</h1>
+        <div class="tagline">Metabolic GPU Dispatch System for Geometric Operations</div>
+        <div class="version">Version 0.1.0 Whitepaper</div>
+    </header>
+    
+    <nav>
+        <ul>
+            <li><a href="#introduction">Introduction</a></li>
+            <li><a href="#philosophy">Philosophy</a></li>
+            <li><a href="#architecture">Architecture</a></li>
+            <li><a href="#mathematics">Mathematics</a></li>
+            <li><a href="#userguide">User Guide</a></li>
+            <li><a href="#api">API Reference</a></li>
+            <li><a href="#examples">Examples</a></li>
+        </ul>
+    </nav>
+    
+    <div class="container">
+        <div class="toc">
+            <h3>Table of Contents</h3>
+            <ul>
+                <li><a href="#introduction">1. Introduction</a></li>
+                <li><a href="#philosophy">2. Philosophy</a>
+                    <ul>
+                        <li><a href="#philosophy-breath">Breath Not Force</a></li>
+                        <li><a href="#philosophy-errors">Zero Silent Failures</a></li>
+                        <li><a href="#philosophy-metabolic">Metabolic Dispatch</a></li>
+                    </ul>
+                </li>
+                <li><a href="#architecture">3. Architecture</a>
+                    <ul>
+                        <li><a href="#arch-overview">System Overview</a></li>
+                        <li><a href="#arch-states">State Machine</a></li>
+                        <li><a href="#arch-holes">The Eight Holes</a></li>
+                    </ul>
+                </li>
+                <li><a href="#mathematics">4. Formal Mathematics</a>
+                    <ul>
+                        <li><a href="#math-state">State Transitions</a></li>
+                        <li><a href="#math-juice">Juice Dynamics</a></li>
+                        <li><a href="#math-lambda">Lambda Calculus</a></li>
+                    </ul>
+                </li>
+                <li><a href="#userguide">5. User Guide</a></li>
+                <li><a href="#api">6. API Reference</a></li>
+                <li><a href="#examples">7. Real-World Examples</a></li>
+            </ul>
+        </div>
+        
+        <!-- Section 1: Introduction -->
+        <section id="introduction">
+            <h2>1. Introduction</h2>
+            
+            <div class="explanation">
+                <div class="grug-box">
+                    <h4>Grug For Dummies</h4>
+                    <p>GrugBreathMap is special way to do computer graphics. Most systems keep GPU awake all time, eating memory like hungry bear. GrugBreathMap different. GrugBreathMap <strong>sleep</strong> when not working. Only <strong>wake up</strong> when needed.</p>
+                    <p>Think of GrugBreathMap like grug himself. Grug sleep in cave. When grug need to hunt, grug wake up. When grug done hunting, grug go back to sleep. Grug not run around all day wasting energy. That dumb.</p>
+                    <p>GrugBreathMap have <strong>8 holes</strong> for 8 different tricks: spin thing, move thing, make thing bigger, flatten thing, mirror thing, find where things cross, push thing into 3D, and combine things. Each hole sleep until needed.</p>
+                    <p>When grug use hole, hole get <strong>juice</strong>. More juice = more awake. If hole get lot of juice, hole become HOT and call GPU cousin to help. But when grug stop using hole, juice go away and hole go back to sleep.</p>
+                </div>
+                
+                <div class="academic-box">
+                    <h4>Academic Explanation</h4>
+                    <p>GrugBreathMap implements a <strong>metabolic dispatch architecture</strong> for GPU-accelerated geometric operations. Traditional GPU computing frameworks maintain persistent memory allocations and kernel readiness states, resulting in constant resource consumption regardless of computational demand.</p>
+                    <p>This system introduces a <strong>demand-driven state machine</strong> with three distinct operational phases: Placeholder (dormant), CPU (active processing), and GPU (accelerated processing). Resource allocation follows a metabolic model where computational "energy" (termed <em>juice</em>) accumulates through use and decays through disuse.</p>
+                    <p>The architecture provides <strong>bounded ephemeral parallelism</strong> through ghost workers—temporary computational agents that spawn under high-load conditions and terminate upon completion or resource decay. This approach minimizes baseline memory footprint while maintaining responsiveness to computational bursts.</p>
+                </div>
+            </div>
+            
+            <h3>1.1 Problem Statement</h3>
+            
+            <div class="explanation">
+                <div class="grug-box">
+                    <h4>Grug For Dummies</h4>
+                    <p>Computer programs waste too much energy. They keep everything running even when nobody using it. Like leaving fire burning in cave all day even when grug out hunting. Wasteful.</p>
+                    <p>Grug watch GPU programs. They grab big chunk of memory and never let go. They keep kernels loaded. They keep buffers ready. All for "maybe grug need later." That like grug carrying spear everywhere, even to sleep. Dumb.</p>
+                    <p>GrugBreathMap fix this. GrugBreathMap only grab resources when grug actually need them. Then grug let go when done. Simple. Efficient. Like grug.</p>
+                </div>
+                
+                <div class="academic-box">
+                    <h4>Academic Explanation</h4>
+                    <p>Contemporary GPU computing paradigms suffer from <strong>resource pre-allocation inefficiency</strong>. Frameworks such as CUDA, OpenCL, and higher-level abstractions like PyTorch or TensorFlow typically require upfront memory allocation and maintain persistent kernel readiness states.</p>
+                    <p>This approach exhibits several pathological behaviors:</p>
+                    <ul>
+                        <li><strong>Memory hoarding:</strong> Pre-allocated buffers remain resident regardless of utilization</li>
+                        <li><strong>Thermal overhead:</strong> Maintained GPU state contributes to baseline power consumption</li>
+                        <li><strong>Poor composability:</strong> Multiple independent operations require independent resource pools</li>
+                        <li><strong>Binary state model:</strong> Systems are either fully initialized or completely unavailable</li>
+                    </ul>
+                    <p>GrugBreathMap addresses these through a <strong>tri-state metabolic model</strong> where resource acquisition correlates with demonstrated demand rather than anticipated need.</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Section 2: Philosophy -->
+        <section id="philosophy">
+            <h2>2. Philosophy</h2>
+            
+            <h3 id="philosophy-breath">2.1 Breath Not Force</h3>
+            
+            <div class="explanation">
+                <div class="grug-box">
+                    <h4>Grug For Dummies</h4>
+                    <p><strong>Breath not force.</strong> This mean grug not push thing when thing not need pushing. Grug breathe. Grug wait. When time right, grug act. Then grug rest again.</p>
+                    <p>Old way: grab everything, hold everything, never let go. That forcing. Forcing waste energy. Forcing make system heavy. Forcing make system slow to start because everything must be ready before anything can happen.</p>
+                    <p>New way: sleep until needed. Wake when called. Work while hot. Rest when done. That breathing. Breathing save energy. Breathing make system light. Breathing make system fast to start because nothing needs to be ready until it needed.</p>
+                    <p>Grug learn this from nature. Bear not hunt all day. Bear hunt when hungry, sleep when full. Eagle not fly all day. Eagle fly when need, rest when done. GrugBreathMap same. System not compute all day. System compute when need, rest when done.</p>
+                </div>
+                
+                <div class="academic-box">
+                    <h4>Academic Explanation</h4>
+                    <p>The principle of <strong>Breath Not Force</strong> represents a paradigm shift from <em>eager evaluation</em> to <em>metabolic resource management</em>. In eager systems, resources are allocated based on anticipated demand—a predictive model that inherently over-provisions due to uncertainty.</p>
+                    <p>Breath Not Force inverts this model:</p>
+                    <ul>
+                        <li><strong>Reactive allocation:</strong> Resources are acquired in response to demonstrated demand, not anticipated need</li>
+                        <li><strong>Metabolic scaling:</strong> Resource intensity correlates with utilization frequency, not external configuration</li>
+                        <li><strong>Natural decay:</strong> Unused resources naturally return to baseline without explicit deallocation</li>
+                    </ul>
+                    <p>This approach draws inspiration from biological systems where metabolic processes scale with activity levels. Just as an organism's respiratory and circulatory systems modulate based on exertion, GrugBreathMap's computational resources modulate based on operational demand.</p>
+                </div>
+            </div>
+            
+            <h3 id="philosophy-errors">2.2 Zero Silent Failures</h3>
+            
+            <div class="explanation">
+                <div class="grug-box">
+                    <h4>Grug For Dummies</h4>
+                    <p>Grug hate silent failure. Silent failure is lie. When thing break, grug want to KNOW. Not guess. Not wonder. KNOW.</p>
+                    <p>Bad system: thing break, system say nothing. Grug think thing work. Grug wrong. Grug spend hours finding problem. Grug angry.</p>
+                    <p>Good system: thing break, system SCREAM. Grug know immediately. Grug fix immediately. Grug happy.</p>
+                    <p>GrugBreathMap SCREAM when thing wrong. Wrong hole? SCREAM. GPU dead? SCREAM. Machine not breathing? SCREAM. Every error LOUD. Every error CLEAR. Grug always know what happening.</p>
+                </div>
+                
+                <div class="academic-box">
+                    <h4>Academic Explanation</h4>
+                    <p>The <strong>Zero Silent Failure Policy</strong> mandates that all exceptional conditions produce observable, diagnostic output. This principle addresses a critical failure mode in production systems: the <em>silent error cascade</em>.</p>
+                    <p>In systems that suppress or silently handle errors, failures propagate through execution paths without detection, often manifesting as subtle data corruption or behavioral drift rather than explicit failures. This makes debugging exponentially more difficult, as the point of observation (symptom) is temporally and spatially distant from the point of origin (cause).</p>
+                    <p>GrugBreathMap implements this through a <strong>hierarchical exception taxonomy</strong>:</p>
+                    <ul>
+                        <li><code>GrugLoudScreamError</code> — Abstract base for all system exceptions</li>
+                        <li><code>WrongHoleError</code> — Invalid operation channel access</li>
+                        <li><code>GpuCousinDeadError</code> — GPU unavailability during accelerated operation</li>
+                        <li><code>MachineDeadError</code> — System not in operational state</li>
+                        <li><code>MissingOperationError</code> — Unimplemented operation invocation</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <h3 id="philosophy-metabolic">2.3 Metabolic Dispatch</h3>
+            
+            <div class="explanation">
+                <div class="grug-box">
+                    <h4>Grug For Dummies</h4>
+                    <p>GrugBreathMap work like grug body. Grug have energy. When grug work, energy go up. When grug rest, energy go down. GrugBreathMap same.</p>
+                    <p>Each hole have <strong>juice</strong>. Juice is energy. When grug use hole, juice go up. When grug not use hole, juice go down slowly.</p>
+                    <p><strong>Little juice:</strong> Hole sleeping. Placeholder. Do nothing. Use no memory.</p>
+                    <p><strong>Some juice:</strong> Hole awake. Use CPU. Do work. Watch for more work.</p>
+                    <p><strong>Lots of juice:</strong> Hole HOT. Call GPU cousin. Maximum power. Get things done fast.</p>
+                    <p>When grug stop using hole, juice drain away naturally. Hole cool down. Go back to sleep. This <strong>metabolic dispatch</strong>. System regulate itself. Grug not need to tell system when to wake or sleep. System know.</p>
+                </div>
+                
+                <div class="academic-box">
+                    <h4>Academic Explanation</h4>
+                    <p><strong>Metabolic dispatch</strong> implements a feedback-driven resource allocation model where system state evolves based on operational history rather than external configuration. This approach draws from control theory and biological systems.</p>
+                    <p>The core abstraction is <em>juice</em> (J), a scalar quantity representing accumulated operational demand:</p>
+                    <div class="math-block">
+                        <div class="equation">J(t) = J(t-1) + ΔJ<sub>use</sub> - ΔJ<sub>decay</sub></div>
+                    </div>
+                    <p>The system state S is determined by threshold comparison:</p>
+                    <div class="math-block">
+                        <div class="equation">S = { GPU if J ≥ θ<sub>gpu</sub>, CPU if J ≥ θ<sub>cpu</sub>, Placeholder otherwise }</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Section 3: Architecture -->
+        <section id="architecture">
+            <h2>3. Architecture</h2>
+            
+            <h3 id="arch-overview">3.1 System Overview</h3>
+            
+            <div class="flowchart">
+                <svg viewBox="0 0 900 400" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="0" y="0" width="900" height="400" fill="#f8f9fa"/>
+                    <text x="450" y="30" text-anchor="middle" font-size="18" font-weight="bold" fill="#2c3e50">GrugBreathMap System Architecture</text>
+                    <rect x="50" y="50" width="800" height="320" rx="10" fill="#e3f2fd" stroke="#2196f3" stroke-width="2"/>
+                    <text x="70" y="80" font-size="14" font-weight="bold" fill="#1976d2">BreathMap (Orchestrator)</text>
+                    <rect x="70" y="100" width="480" height="250" rx="8" fill="#fff3e0" stroke="#ff9800" stroke-width="2"/>
+                    <text x="90" y="125" font-size="12" font-weight="bold" fill="#e65100">holes: Dict{String, GrugHole}</text>
+                    <g transform="translate(90, 140)">
+                        <rect width="100" height="60" rx="5" fill="#ffebee" stroke="#f44336" stroke-width="1.5"/>
+                        <text x="50" y="20" text-anchor="middle" font-size="10" font-weight="bold" fill="#c62828">rotate</text>
+                        <text x="50" y="35" text-anchor="middle" font-size="8" fill="#666">GPU/CPU</text>
+                        <text x="50" y="50" text-anchor="middle" font-size="8" fill="#666">J: 0.1 → 1.0</text>
+                    </g>
+                    <g transform="translate(200, 140)">
+                        <rect width="100" height="60" rx="5" fill="#e8f5e9" stroke="#4caf50" stroke-width="1.5"/>
+                        <text x="50" y="20" text-anchor="middle" font-size="10" font-weight="bold" fill="#2e7d32">translate</text>
+                        <text x="50" y="35" text-anchor="middle" font-size="8" fill="#666">GPU/CPU</text>
+                    </g>
+                    <g transform="translate(310, 140)">
+                        <rect width="100" height="60" rx="5" fill="#e3f2fd" stroke="#2196f3" stroke-width="1.5"/>
+                        <text x="50" y="20" text-anchor="middle" font-size="10" font-weight="bold" fill="#1565c0">scale</text>
+                    </g>
+                    <g transform="translate(420, 140)">
+                        <rect width="100" height="60" rx="5" fill="#f3e5f5" stroke="#9c27b0" stroke-width="1.5"/>
+                        <text x="50" y="20" text-anchor="middle" font-size="10" font-weight="bold" fill="#7b1fa2">project</text>
+                    </g>
+                    <g transform="translate(90, 210)">
+                        <rect width="100" height="60" rx="5" fill="#fff8e1" stroke="#ffc107" stroke-width="1.5"/>
+                        <text x="50" y="20" text-anchor="middle" font-size="10" font-weight="bold" fill="#f57f17">reflect</text>
+                    </g>
+                    <g transform="translate(200, 210)">
+                        <rect width="100" height="60" rx="5" fill="#efebe9" stroke="#795548" stroke-width="1.5"/>
+                        <text x="50" y="20" text-anchor="middle" font-size="10" font-weight="bold" fill="#4e342e">intersect</text>
+                    </g>
+                    <g transform="translate(310, 210)">
+                        <rect width="100" height="60" rx="5" fill="#e0f7fa" stroke="#00bcd4" stroke-width="1.5"/>
+                        <text x="50" y="20" text-anchor="middle" font-size="10" font-weight="bold" fill="#00838f">extrude</text>
+                    </g>
+                    <g transform="translate(420, 210)">
+                        <rect width="100" height="60" rx="5" fill="#fce4ec" stroke="#e91e63" stroke-width="1.5"/>
+                        <text x="50" y="20" text-anchor="middle" font-size="10" font-weight="bold" fill="#c2185b">boolean</text>
+                    </g>
+                    <text x="310" y="295" text-anchor="middle" font-size="10" fill="#666" font-style="italic">8 Semantic Channels (GrugHoles)</text>
+                    <rect x="570" y="100" width="260" height="100" rx="8" fill="#e8f5e9" stroke="#4caf50" stroke-width="2"/>
+                    <text x="590" y="125" font-size="12" font-weight="bold" fill="#2e7d32">lungs: Task</text>
+                    <text x="590" y="145" font-size="10" fill="#666">Background breathing loop</text>
+                    <text x="590" y="160" font-size="9" fill="#666">• Monitor juice decay</text>
+                    <text x="590" y="175" font-size="9" fill="#666">• Update hole states</text>
+                    <text x="590" y="190" font-size="9" fill="#666">• Reap dead ghost workers</text>
+                    <rect x="570" y="220" width="260" height="60" rx="8" fill="#fff3e0" stroke="#ff9800" stroke-width="2"/>
+                    <text x="590" y="245" font-size="12" font-weight="bold" fill="#e65100">breathe_flag: Atomic{Bool}</text>
+                    <text x="590" y="265" font-size="10" fill="#666">true = breathing, false = dead</text>
+                </svg>
+            </div>
+            
+            <h3 id="arch-states">3.2 State Machine</h3>
+            
+            <div class="flowchart">
+                <svg viewBox="0 0 800 300" xmlns="http://www.w3.org/2000/svg">
+                    <text x="400" y="25" text-anchor="middle" font-size="16" font-weight="bold" fill="#2c3e50">State Transition Diagram</text>
+                    <circle cx="150" cy="150" r="60" fill="#ffebee" stroke="#f44336" stroke-width="3"/>
+                    <text x="150" y="145" text-anchor="middle" font-size="12" font-weight="bold" fill="#c62828">PLACEHOLDER</text>
+                    <text x="150" y="160" text-anchor="middle" font-size="10" fill="#666">J &lt; 0.3</text>
+                    <circle cx="400" cy="150" r="60" fill="#e3f2fd" stroke="#2196f3" stroke-width="3"/>
+                    <text x="400" y="145" text-anchor="middle" font-size="12" font-weight="bold" fill="#1565c0">CPU</text>
+                    <text x="400" y="160" text-anchor="middle" font-size="10" fill="#666">0.3 ≤ J &lt; 0.7</text>
+                    <circle cx="650" cy="150" r="60" fill="#e8f5e9" stroke="#4caf50" stroke-width="3"/>
+                    <text x="650" y="145" text-anchor="middle" font-size="12" font-weight="bold" fill="#2e7d32">GPU</text>
+                    <text x="650" y="160" text-anchor="middle" font-size="10" fill="#666">J ≥ 0.7</text>
+                    <path d="M 210 130 Q 280 80 340 120" fill="none" stroke="#2196f3" stroke-width="2" marker-end="url(#bluearrow)"/>
+                    <text x="275" y="85" font-size="10" fill="#2196f3">J ≥ θ&lt;sub&gt;cpu&lt;/sub&gt;</text>
+                    <path d="M 460 130 Q 530 80 590 120" fill="none" stroke="#4caf50" stroke-width="2" marker-end="url(#greenarrow)"/>
+                    <text x="525" y="85" font-size="10" fill="#4caf50">J ≥ θ&lt;sub&gt;gpu&lt;/sub&gt;</text>
+                    <path d="M 590 180 Q 530 230 460 180" fill="none" stroke="#ff9800" stroke-width="2" marker-end="url(#orangearrow)"/>
+                    <text x="525" y="225" font-size="10" fill="#ff9800">J &lt; θ&lt;sub&gt;gpu&lt;/sub&gt;</text>
+                    <path d="M 340 180 Q 280 230 210 180" fill="none" stroke="#f44336" stroke-width="2" marker-end="url(#redarrow)"/>
+                    <text x="275" y="225" font-size="10" fill="#f44336">J &lt; θ&lt;sub&gt;cpu&lt;/sub&gt;</text>
+                    <defs>
+                        <marker id="bluearrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                            <path d="M0,0 L0,6 L9,3 z" fill="#2196f3"/>
+                        </marker>
+                        <marker id="greenarrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                            <path d="M0,0 L0,6 L9,3 z" fill="#4caf50"/>
+                        </marker>
+                        <marker id="orangearrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                            <path d="M0,0 L0,6 L9,3 z" fill="#ff9800"/>
+                        </marker>
+                        <marker id="redarrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                            <path d="M0,0 L0,6 L9,3 z" fill="#f44336"/>
+                        </marker>
+                    </defs>
+                </svg>
+            </div>
+            
+            <h3 id="arch-holes">3.3 The Eight Holes</h3>
+            
+            <table class="parameters-table">
+                <thead>
+                    <tr>
+                        <th>Hole Name</th>
+                        <th>Operation</th>
+                        <th>Signature</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>rotate</code></td>
+                        <td>Rotation</td>
+                        <td>(geometry, angle, axis)</td>
+                        <td>Rotate geometry around axis by angle (radians)</td>
+                    </tr>
+                    <tr>
+                        <td><code>translate</code></td>
+                        <td>Translation</td>
+                        <td>(geometry, offset)</td>
+                        <td>Move geometry by offset vector</td>
+                    </tr>
+                    <tr>
+                        <td><code>scale</code></td>
+                        <td>Scaling</td>
+                        <td>(geometry, factors)</td>
+                        <td>Scale geometry by uniform or per-axis factors</td>
+                    </tr>
+                    <tr>
+                        <td><code>project</code></td>
+                        <td>Projection</td>
+                        <td>(geometry, plane_normal)</td>
+                        <td>Project geometry onto plane defined by normal</td>
+                    </tr>
+                    <tr>
+                        <td><code>reflect</code></td>
+                        <td>Reflection</td>
+                        <td>(geometry, plane_normal)</td>
+                        <td>Mirror geometry across plane defined by normal</td>
+                    </tr>
+                    <tr>
+                        <td><code>intersect</code></td>
+                        <td>Intersection</td>
+                        <td>(geo_a, geo_b)</td>
+                        <td>Compute intersection of two geometries</td>
+                    </tr>
+                    <tr>
+                        <td><code>extrude</code></td>
+                        <td>Extrusion</td>
+                        <td>(geometry, distance, direction)</td>
+                        <td>Extrude 2D geometry into 3D along direction</td>
+                    </tr>
+                    <tr>
+                        <td><code>boolean</code></td>
+                        <td>Boolean Operations</td>
+                        <td>(geo_a, geo_b, operation)</td>
+                        <td>Union, difference, or intersection of solids</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+        
+        <!-- Section 4: Mathematics -->
+        <section id="mathematics">
+            <h2>4. Formal Mathematics</h2>
+            
+            <h3 id="math-state">4.1 State Transitions</h3>
+            
+            <p>The GrugBreathMap state machine can be formally defined as a tuple:</p>
+            
+            <div class="math-block">
+                <div class="equation">M = (S, J, Θ, δ, λ)</div>
+            </div>
+            
+            <p>Where:</p>
+            <ul>
+                <li><strong>S</strong> = {Placeholder, CPU, GPU} is the finite set of states</li>
+                <li><strong>J</strong> ∈ [0, J<sub>max</sub>] is the juice (continuous state variable)</li>
+                <li><strong>Θ</strong> = {θ<sub>cpu</sub>, θ<sub>gpu</sub>} is the threshold set</li>
+                <li><strong>δ</strong>: S × J → S is the state transition function</li>
+                <li><strong>λ</strong>: S × J → P(Workers) is the ghost worker allocation function</li>
+            </ul>
+            
+            <h3 id="math-juice">4.2 Juice Dynamics</h3>
+            
+            <p>The juice level evolves according to a discrete-time dynamical system:</p>
+            
+            <div class="math-block">
+                <div class="equation">J(t + Δt) = min(J<sub>max</sub>, J(t) + u(t)·ΔJ<sub>use</sub> - d(t)·ΔJ<sub>decay</sub>)</div>
+            </div>
+            
+            <p>Where:</p>
+            <ul>
+                <li><strong>u(t)</strong> = 1 if operation performed at time t, 0 otherwise</li>
+                <li><strong>d(t)</strong> = 1 if t &gt; t<sub>wake</sub> (past TTL), 0 otherwise</li>
+                <li><strong>ΔJ<sub>use</sub></strong> = juice increment per operation (default: 0.1)</li>
+                <li><strong>ΔJ<sub>decay</sub></strong> = juice decay rate per cycle (default: 10% of current)</li>
+            </ul>
+            
+            <h3 id="math-lambda">4.3 Lambda Calculus Representation</h3>
+            
+            <div class="lambda-expr">
+                <strong>Hole</strong> := λname.λcpu.λgpu.λstate.λjuice.{name, cpu, gpu, state, juice}
+            </div>
+            
+            <div class="lambda-expr">
+                <strong>BreathMap</strong> := λholes.λflag.λlungs.{holes, flag, lungs}
+            </div>
+            
+            <div class="lambda-expr">
+                <strong>do_geometry</strong> := λmap.λhole.λargs.<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;if ¬map.flag then ERROR[MachineDead]<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;else if hole ∉ map.holes then ERROR[WrongHole]<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;else let h = map.holes[hole] in<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let j' = min(h.max_juice, h.juice + h.juice_step) in<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let s' = state_from_juice(j') in<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if s' = GPU then h.gpu_trick(args) else h.cpu_trick(args)
+            </div>
+            
+            <div class="lambda-expr">
+                <strong>state_from_juice</strong> := λj.λθ&lt;sub&gt;cpu&lt;/sub&gt;.λθ&lt;sub&gt;gpu&lt;/sub&gt;.<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;if j ≥ θ&lt;sub&gt;gpu&lt;/sub&gt; then GPU<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;else if j ≥ θ&lt;sub&gt;cpu&lt;/sub&gt; then CPU<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;else Placeholder
+            </div>
+            
+            <div class="lambda-expr">
+                <strong>breathe_loop</strong> := λmap.<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;while map.flag do<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for each (name, hole) in map.holes do<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if expired(hole.ttl) then decay(hole);<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;reap_ghosts(hole);<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sleep(0.5ms)
+            </div>
+            
+            <h4>4.3.1 Formal Verification Properties</h4>
+            
+            <p><strong>Theorem 1 (Bounded Ghost Workers):</strong> For any hole h, |h.ghosts| ≤ h.max_ghosts at all times.</p>
+            <p><em>Proof:</em> Ghost workers are only added under the condition active_ghosts &lt; max_ghosts. By induction, the invariant holds. ∎</p>
+            
+            <p><strong>Theorem 2 (Juice Boundedness):</strong> For any hole h, h.baseline_juice ≤ h.juice ≤ h.max_juice at all times.</p>
+            <p><em>Proof:</em> Juice is initialized to baseline. The update function applies min(max_juice, ...) for increases and max(baseline_juice, ...) for decreases. ∎</p>
+            
+            <p><strong>Theorem 3 (Eventual Quiescence):</strong> If no operations are performed on hole h for sufficient time, then h.state = Placeholder.</p>
+            <p><em>Proof:</em> After TTL expires, juice decays geometrically. Since state transitions only increase on juice increase, and juice is decreasing, state must eventually reach Placeholder. ∎</p>
+        </section>
+        
+        <!-- Section 5: User Guide -->
+        <section id="userguide">
+            <h2>5. User Guide</h2>
+            
+            <h3 id="guide-install">5.1 Installation</h3>
+            
+            <pre><code><span class="comment"># Start Julia REPL</span>
+<span class="keyword">using</span> Pkg
+
+<span class="comment"># Add GrugBreathMap from GitHub</span>
+Pkg.<span class="function">add</span>(<span class="function">url</span>=<span class="string">"https://github.com/marshalldavidson61-arch/breathingGPU"</span>)
+
+<span class="comment"># Import the module</span>
+<span class="keyword">using</span> <span class="type">GrugBreathMap</span></code></pre>
+            
+            <h3 id="guide-quickstart">5.2 Quick Start</h3>
+            
+            <div class="example-block">
+                <div class="example-title">Example #1: Basic Usage Pattern</div>
+                <pre class="example-code"><code><span class="keyword">using</span> <span class="type">GrugBreathMap</span>
+
+<span class="comment"># Create a breathing map with default tricks</span>
+map = <span class="function">BreathMapWithTricks</span>()
+
+<span class="comment"># Define a point to transform</span>
+point = [<span class="number">1.0</span>, <span class="number">0.0</span>, <span class="number">0.0</span>]
+
+<span class="comment"># Do geometry - the rotate hole wakes up</span>
+rotated = <span class="function">do_geometry!</span>(map, <span class="string">"rotate"</span>, point, π/<span class="number">2</span>, [<span class="number">0.0</span>, <span class="number">0.0</span>, <span class="number">1.0</span>])
+<span class="comment"># Result: [0.0, 1.0, 0.0]</span>
+
+<span class="comment"># Check the status</span>
+status = <span class="function">map_status</span>(map)
+
+<span class="comment"># When done, kill the machine</span>
+<span class="function">kill_map!</span>(map)</code></pre>
+            </div>
+            
+            <h3 id="guide-concepts">5.3 Core Concepts</h3>
+            
+            <h4>5.3.1 The BreathMap</h4>
+            <p>The BreathMap is the primary orchestrator. It encapsulates the hole collection, atomic state flag, and background processing task.</p>
+            
+            <h4>5.3.2 The GrugHole</h4>
+            <p>Each GrugHole represents a semantic channel for a specific operation type. It maintains independent metabolic state (juice), operational state (Placeholder/CPU/GPU), and ghost worker pool.</p>
+            
+            <h4>5.3.3 Ghost Workers</h4>
+            <p>Ghost workers are ephemeral asynchronous tasks spawned under high-load conditions. They provide speculative parallelism and are bounded (default max: 8 per hole).</p>
+            
+            <div class="warning">
+                Ghost workers are speculative—they may or may not complete before the main result is returned. Do not rely on ghost workers for critical path computations.
+            </div>
+        </section>
+        
+        <!-- Section 6: API Reference -->
+        <section id="api">
+            <h2>6. API Reference</h2>
+            
+            <div class="function-signature">
+                BreathMapWithTricks(; hole_names::Vector{String} = DEFAULT_HOLES) → BreathMap
+            </div>
+            <div class="function-body">
+                <p><strong>Description:</strong> Creates a new BreathMap with all default CPU and GPU operation implementations pre-installed.</p>
+                
+                <table class="parameters-table">
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Type</th>
+                            <th>Default</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>hole_names</code></td>
+                            <td>Vector{String}</td>
+                            <td>["rotate", "translate", "scale", "project", "reflect", "intersect", "extrude", "boolean"]</td>
+                            <td>Names of holes to create</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="return-value">
+                    <strong>Returns:</strong> A new <code>BreathMap</code> instance with all holes initialized and default tricks installed.
+                </div>
+            </div>
+            
+            <hr style="margin: 40px 0; border: none; border-top: 1px solid #ddd;"/>
+            
+            <div class="function-signature">
+                do_geometry!(map::BreathMap, hole_name::String, args...; kwargs...) → Any
+            </div>
+            <div class="function-body">
+                <p><strong>Description:</strong> Performs a geometric operation on the specified hole. Wakes the hole if sleeping, increases juice, may spawn ghost workers.</p>
+                
+                <table class="parameters-table">
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>map</code></td>
+                            <td>BreathMap</td>
+                            <td>The breathing machine to operate on</td>
+                        </tr>
+                        <tr>
+                            <td><code>hole_name</code></td>
+                            <td>String</td>
+                            <td>Name of the hole</td>
+                        </tr>
+                        <tr>
+                            <td><code>args...</code></td>
+                            <td>Any</td>
+                            <td>Arguments passed to the operation function</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="return-value">
+                    <strong>Returns:</strong> The result of the geometric operation.
+                </div>
+                
+                <p><strong>Errors/Exceptions:</p>
+                <table class="parameters-table">
+                    <thead>
+                        <tr>
+                            <th>Exception</th>
+                            <th>Condition</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>MachineDeadError</code></td>
+                            <td>The BreathMap's breathe_flag is false</td>
+                        </tr>
+                        <tr>
+                            <td><code>WrongHoleError</code></td>
+                            <td>The hole_name doesn't exist in the map</td>
+                        </tr>
+                        <tr>
+                            <td><code>MissingOperationError</code></td>
+                            <td>No CPU/GPU trick is set for the hole</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <hr style="margin: 40px 0; border: none; border-top: 1px solid #ddd;"/>
+            
+            <div class="function-signature">
+                kill_map!(map::BreathMap) → Nothing
+            </div>
+            <div class="function-body">
+                <p><strong>Description:</strong> Terminates the breathing machine. Sets the breathe_flag to false, waits for the background loop to stop, and cleans up all ghost workers.</p>
+                
+                <div class="return-value">
+                    <strong>Returns:</strong> <code>nothing</code>
+                </div>
+                
+                <div class="note">
+                    After calling <code>kill_map!</code>, any subsequent calls to <code>do_geometry!</code> will throw a <code>MachineDeadError</code>.
+                </div>
+            </div>
+            
+            <hr style="margin: 40px 0; border: none; border-top: 1px solid #ddd;"/>
+            
+            <div class="function-signature">
+                map_status(map::BreathMap) → Dict{String, Any}
+            </div>
+            <div class="function-body">
+                <p><strong>Description:</strong> Returns a comprehensive status dictionary for the entire breathing machine.</p>
+                
+                <div class="return-value">
+                    <strong>Returns:</strong> Dictionary with keys: "breathing", "num_holes", "total_juice", "total_ghosts", "holes"
+                </div>
+            </div>
+            
+            <hr style="margin: 40px 0; border: none; border-top: 1px solid #ddd;"/>
+            
+            <div class="function-signature">
+                hole_status(hole::GrugHole) → Dict{String, Any}
+            </div>
+            <div class="function-body">
+                <p><strong>Description:</strong> Returns detailed status for a single hole.</p>
+                
+                <div class="return-value">
+                    <strong>Returns:</strong> Dictionary with keys: "name", "state", "juice", "juice_percent", "streak", "active_ghosts", "max_ghosts", "wake_remaining_ms"
+                </div>
+            </div>
+        </section>
+        
+        <!-- Section 7: Examples -->
+        <section id="examples">
+            <h2>7. Real-World Examples</h2>
+            
+            <h3>7.1 CAD Pipeline</h3>
+            
+            <div class="example-block">
+                <div class="example-title">CAD Pipeline with Multiple Operations</div>
+                <pre class="example-code"><code><span class="keyword">using</span> <span class="type">GrugBreathMap</span>
+
+<span class="comment"># Create map for CAD operations</span>
+map = <span class="function">BreathMapWithTricks</span>()
+
+<span class="comment"># Define a simple box geometry (8 corners)</span>
+box = [
+    <span class="number">0.0</span> <span class="number">1.0</span> <span class="number">1.0</span> <span class="number">0.0</span> <span class="number">0.0</span> <span class="number">1.0</span> <span class="number">1.0</span> <span class="number">0.0</span>
+    <span class="number">0.0</span> <span class="number">0.0</span> <span class="number">1.0</span> <span class="number">1.0</span> <span class="number">0.0</span> <span class="number">0.0</span> <span class="number">1.0</span> <span class="number">1.0</span>
+    <span class="number">0.0</span> <span class="number">0.0</span> <span class="number">0.0</span> <span class="number">0.0</span> <span class="number">1.0</span> <span class="number">1.0</span> <span class="number">1.0</span> <span class="number">1.0</span>
+]
+
+<span class="comment"># Rotate 45 degrees around Z axis</span>
+rotated = <span class="function">do_geometry!</span>(map, <span class="string">"rotate"</span>, box, π/<span class="number">4</span>, [<span class="number">0.0</span>, <span class="number">0.0</span>, <span class="number">1.0</span>])
+
+<span class="comment"># Translate to new position</span>
+translated = <span class="function">do_geometry!</span>(map, <span class="string">"translate"</span>, rotated, [<span class="number">5.0</span>, <span class="number">5.0</span>, <span class="number">0.0</span>])
+
+<span class="comment"># Scale by 2x</span>
+scaled = <span class="function">do_geometry!</span>(map, <span class="string">"scale"</span>, translated, <span class="number">2.0</span>)
+
+<span class="comment"># Check status - holes should be warm now</span>
+status = <span class="function">map_status</span>(map)
+<span class="function">println</span>(<span class="string">"Total juice: "</span>, status[<span class="string">"total_juice"</span>])
+
+<span class="function">kill_map!</span>(map)</code></pre>
+            </div>
+            
+            <h3>7.2 Game Engine Transform</h3>
+            
+            <div class="example-block">
+                <div class="example-title">Game Object Transformations</div>
+                <pre class="example-code"><code><span class="keyword">using</span> <span class="type">GrugBreathMap</span>
+
+<span class="comment"># Game engine transform system</span>
+map = <span class="function">BreathMapWithTricks</span>()
+
+<span class="keyword">function</span> <span class="function">update_game_object</span>(map, position, rotation, scale_factor)
+    <span class="comment"># Apply transforms in order: scale -&gt; rotate -&gt; translate</span>
+    obj = [<span class="number">1.0</span>, <span class="number">0.0</span>, <span class="number">0.0</span>]  <span class="comment"># Local forward vector</span>
+    
+    <span class="comment"># Scale</span>
+    obj = <span class="function">do_geometry!</span>(map, <span class="string">"scale"</span>, obj, scale_factor)
+    
+    <span class="comment"># Rotate around Y axis (yaw)</span>
+    obj = <span class="function">do_geometry!</span>(map, <span class="string">"rotate"</span>, obj, rotation, [<span class="number">0.0</span>, <span class="number">1.0</span>, <span class="number">0.0</span>])
+    
+    <span class="comment"># Translate to world position</span>
+    obj = <span class="function">do_geometry!</span>(map, <span class="string">"translate"</span>, obj, position)
+    
+    <span class="keyword">return</span> obj
+<span class="keyword">end</span>
+
+<span class="comment"># Simulate game loop</span>
+<span class="keyword">for</span> frame <span class="keyword">in</span> <span class="number">1</span>:<span class="number">100</span>
+    pos = [<span class="function">rand</span>() * <span class="number">10</span>, <span class="function">rand</span>() * <span class="number">10</span>, <span class="function">rand</span>() * <span class="number">10</span>]
+    rot = <span class="function">rand</span>() * <span class="number">2</span>π
+    scl = <span class="function">rand</span>() * <span class="number">2</span> + <span class="number">0.5</span>
+    <span class="function">update_game_object</span>(map, pos, rot, scl)
+<span class="keyword">end</span>
+
+<span class="comment"># After heavy use, check if GPU state achieved</span>
+status = <span class="function">map_status</span>(map)
+<span class="function">println</span>(<span class="string">"Holes in GPU state: "</span>, 
+    <span class="function">count</span>(h -&gt; h[<span class="string">"state"</span>] == <span class="string">"GPU_STATE"</span>, 
+           <span class="function">values</span>(status[<span class="string">"holes"</span>])))
+
+<span class="function">kill_map!</span>(map)</code></pre>
+            </div>
+            
+            <h3>7.3 Error Handling Pattern</h3>
+            
+            <div class="example-block">
+                <div class="example-title">Robust Error Handling</div>
+                <pre class="example-code"><code><span class="keyword">using</span> <span class="type">GrugBreathMap</span>
+
+<span class="keyword">function</span> <span class="function">safe_geometry</span>(map, hole_name, args...)
+    <span class="keyword">try</span>
+        <span class="keyword">return</span> (<span class="keyword">true</span>, <span class="function">do_geometry!</span>(map, hole_name, args...))
+    <span class="keyword">catch</span> e
+        <span class="keyword">if</span> e <span class="keyword">isa</span> <span class="type">WrongHoleError</span>
+            <span class="function">println</span>(<span class="string">"💀 Wrong hole: "</span>, e.msg)
+        <span class="keyword">elseif</span> e <span class="keyword">isa</span> <span class="type">MachineDeadError</span>
+            <span class="function">println</span>(<span class="string">"💀 Machine dead: "</span>, e.msg)
+        <span class="keyword">elseif</span> e <span class="keyword">isa</span> <span class="type">MissingOperationError</span>
+            <span class="function">println</span>(<span class="string">"💀 Missing operation: "</span>, e.msg)
+        <span class="keyword">else</span>
+            <span class="function">rethrow</span>(e)
+        <span class="keyword">end</span>
+        <span class="keyword">return</span> (<span class="keyword">false</span>, nothing)
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+
+<span class="comment"># Usage</span>
+map = <span class="function">BreathMapWithTricks</span>()
+ok, result = <span class="function">safe_geometry</span>(map, <span class="string">"rotate"</span>, [<span class="number">1.0</span>,<span class="number">0.0</span>,<span class="number">0.0</span>], π/<span class="number">2</span>, [<span class="number">0.0</span>,<span class="number">0.0</span>,<span class="number">1.0</span>])
+<span class="function">println</span>(<span class="string">"Success: "</span>, ok, <span class="string">", Result: "</span>, result)
+
+<span class="comment"># This will error gracefully</span>
+ok, result = <span class="function">safe_geometry</span>(map, <span class="string">"nonexistent"</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>)
+<span class="comment"># Output: 💀 Wrong hole: Hole 'nonexistent' not found...</span>
+
+<span class="function">kill_map!</span>(map)</code></pre>
+            </div>
+        </section>
+    </div>
+    
+    <footer>
+        <p>🦴 GrugBreathMap v0.1.0 Whitepaper</p>
+        <p><em>Grug not force. Grug breathe.</em></p>
+        <p><a href="https://github.com/marshalldavidson61-arch/breathingGPU">GitHub Repository</a></p>
+    </footer>
+</body>
+</html>
