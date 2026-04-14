@@ -8,10 +8,15 @@ using GrugBreathMap
         @test GpuCousinDeadError("test") isa GrugLoudScreamError
         @test MachineDeadError("test") isa GrugLoudScreamError
         @test MissingOperationError("test") isa GrugLoudScreamError
+        @test GhostWorkerDiedError("test", Exception("oops")) isa GrugLoudScreamError
+        @test GpuFallbackRequiredError("test", GpuCousinDeadError("dead")) isa GrugLoudScreamError
         
         # Grug errors are LOUD
         err = WrongHoleError("bad hole")
         @test occursin("WRONG HOLE", sprint(showerror, err))
+        
+        err = GhostWorkerDiedError("rotate", Exception("test error"))
+        @test occursin("GHOST WORKER DIED", sprint(showerror, err))
     end
     
     @testset "GrugHole Construction" begin
@@ -21,6 +26,7 @@ using GrugBreathMap
         @test hole.current_juice == hole.baseline_juice
         @test hole.active_ghosts == 0
         @test hole.streak == 0
+        @test hole.ghost_graveyard == 0  # No dead ghosts yet
     end
     
     @testset "BreathMap Construction" begin
@@ -35,6 +41,7 @@ using GrugBreathMap
         @test haskey(map.holes, "intersect")
         @test haskey(map.holes, "extrude")
         @test haskey(map.holes, "boolean")
+        @test isempty(map.dead_ghosts_report)  # No dead ghosts yet
     end
     
     @testset "WrongHoleError" begin
@@ -55,10 +62,13 @@ using GrugBreathMap
         @test status["breathing"] == true
         @test status["num_holes"] == 8
         @test haskey(status, "holes")
+        @test haskey(status, "total_dead_ghosts")
+        @test haskey(status, "dead_ghosts_report")
         
         hole_stat = hole_status(map.holes["rotate"])
         @test hole_stat["name"] == "rotate"
         @test hole_stat["state"] == "PLACEHOLDER_STATE"
+        @test haskey(hole_stat, "dead_ghosts")
     end
     
     @testset "CPU Operations" begin
@@ -104,5 +114,40 @@ using GrugBreathMap
         
         @test map.breathe_flag[] == false
         @test all(h.active_ghosts == 0 for h in values(map.holes))
+    end
+    
+    @testset "Dead Ghost Reporting" begin
+        map = BreathMapWithTricks()
+        
+        # Get dead ghosts report (should be empty initially)
+        report = get_dead_ghosts_report(map)
+        @test isempty(report)
+        
+        # Check status includes dead ghost tracking
+        status = map_status(map)
+        @test haskey(status, "total_dead_ghosts")
+        @test status["total_dead_ghosts"] == 0
+    end
+    
+    @testset "Explicit Fallback Function" begin
+        map = BreathMapWithTricks()
+        
+        # do_geometry_with_fallback! should work for CPU operations
+        point = [1.0, 0.0, 0.0]
+        rotated = do_geometry_with_fallback!(map, "rotate", point, π/2, [0.0, 0.0, 1.0])
+        @test isapprox(rotated[1], 0.0, atol=1e-10)
+        @test isapprox(rotated[2], 1.0, atol=1e-10)
+    end
+    
+    @testset "No Silent GPU Fallback" begin
+        map = BreathMapWithTricks()
+        
+        # Force a hole into GPU state by pumping juice
+        hole = map.holes["rotate"]
+        hole.current_juice = 0.9  # Above GPU threshold
+        
+        # Since has_gpu() returns false, GPU operation should SCREAM
+        # (No silent fallback in do_geometry!)
+        @test_throws GpuCousinDeadError do_geometry!(map, "rotate", [1.0, 0.0, 0.0], 0.1, [0.0, 0.0, 1.0])
     end
 end
